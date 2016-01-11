@@ -2,7 +2,7 @@
 
 Exemplos:
 
-1) Para obter o Valor Futuro de uma operação
+1) Para obter o valor futuro de uma operação
 <pre>     n = 10
      i = 2%
      pv = 1000
@@ -14,7 +14,7 @@ Exemplos:
      
      Resposta: 1218.994 </pre>     
      
-2) Para obter o valor presente de um valor Futuro
+2) Para obter o valor presente de um valor futuro
 <pre>
    n = 10
    i = 2%
@@ -32,6 +32,7 @@ Exemplos:
    pv = 1000
    n = 10
    i = 2%
+   pmt = ?
    
    select  PKG_FINANCE.pmt (1000,2,10) pbm from rdb$database   (3.0)
         ou
