@@ -154,7 +154,7 @@ SET TERM ; ^
 
 SET TERM ^ ;
 
-ALTER  PACKAGE PKG_FINANCE
+CREATE  PACKAGE PKG_FINANCE
 AS
 begin
        function n( vp double precision, vf double precision, i double precision) returns double precision;
