@@ -1,6 +1,6 @@
 
 
-Exemplos utilizando packages (3.0):
+Exemplos utilizando PKG_FINANCE (3.0):
 
 1) Para obter o Valor Futuro de uma operação
 <pre>     n = 10
