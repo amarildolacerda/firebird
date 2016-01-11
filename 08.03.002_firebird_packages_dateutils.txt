@@ -1,0 +1,134 @@
+/* 
+   Auth:  Amarildo Lacerda - amarildo.lacerda@storeware.com.br
+   Subj:  Firebird procedures for DateUtils
+   Date:  11/Jan/2016
+ */
+
+
+SET TERM ^ ;
+
+RECREATE PACKAGE PKG_DateUtils
+AS
+begin
+     procedure DecodeDate(PDate date)  returns ( y double precision, m double precision, d double precision );
+     procedure DecodeTime (PDate date) returns (h integer, m integer, s integer);
+     procedure EncodeDate (y integer,m integer, d integer) returns ( data date);
+     procedure EncodeTime (h integer,m integer,s integer) returns ( hr char(9));
+
+end^
+
+RECREATE PACKAGE BODY PKG_DateUtils
+AS
+begin
+     procedure DecodeDate(PDate date)  returns  (y double precision, m double precision, d double precision)
+     as
+     begin
+         d = EXTRACT( DAY FROM PDate);
+         M = EXTRACT( MONTH FROM PDate);
+         y = EXTRACT( YEAR FROM PDate);
+        suspend;
+     end
+
+     procedure DecodeTime (PDate date) returns (h integer, m integer, s integer)
+     as
+     begin
+       h = EXTRACT( HOUR FROM PDate);
+       m = EXTRACT( MINUTE FROM PDate);
+       s = EXTRACT( SECOND FROM PDate);
+       suspend;
+     end
+
+
+     procedure EncodeDate (y integer,m integer, d integer) returns ( data date)
+     as
+     begin
+       data = CAST( CAST(m AS CHAR(2))||'/'||CAST(d AS CHAR(2))||'/'||CAST(y AS CHAR(4)) AS DATE);
+       suspend;
+     end
+
+
+     procedure EncodeTime (h integer,m integer,s integer) returns ( hr char(9))
+     as
+     declare variable rh varchar(2);
+     declare variable rm varchar(2);
+     declare variable rs varchar(2);
+     begin
+        rh = substring(cast(100+h as varchar(3)) from 2 for 2);
+        rm = substring(cast(100+m as varchar(3)) from 2 for 2);
+        rs = substring(cast(100+s as varchar(3)) from 2 for 2);
+        hr   =  rh||':'||rm||':'||rs;
+        suspend;
+     end
+
+
+
+end^
+
+SET TERM ; ^
+
+commit work;
+
+-----------------------------------------------------------------
+-- PKG_DateUtils  Tests
+-----------------------------------------------------------------
+create or alter  exception test_Error 'Error: ';
+
+SET TERM ^ ;
+
+execute block
+as
+declare variable dt date;
+declare variable y double precision;
+declare variable m double precision ;
+declare variable d double precision ;
+declare variable h integer ;
+declare variable s integer ;
+declare variable rs varchar(50);
+begin
+
+    -- test DecodeDate
+    dt = cast('now' as date);
+    select y,m,d from PKG_DateUtils.DecodeDate( :dt )
+    into :y,:m,:d;
+    if (:y <> extract(year from :dt)) then
+       exception test_Error 'DecodeDate Year';
+    if (:m <> extract(month from :dt)) then
+       exception test_Error 'DecodeDate Month';
+    if (:d <> extract(day from :dt)) then
+       exception test_Error 'DecodeDate Day';
+
+
+    -- test  DecodeTime
+    select h,m,s from PKG_DateUtils.DecodeTime( :dt )
+    into :h,:m,:s;
+    if (:h <> extract(hour from :dt)) then
+       exception test_Error 'DecodeTime Hour';
+    if (:m <> extract(minute from :dt)) then
+       exception test_Error 'DecodeTime Minute';
+    if (:s <> cast(extract(second from :dt) as integer)) then
+       exception test_Error 'DecodeTime Second '||extract(second from :dt)||' -> '||:s;
+
+    -- test EncodeDate
+    select data from PKG_DateUtils.encodeDate(2016,1,11)
+    into :dt;
+    if (:dt <> cast( '01/11/2016' as date)) then
+       exception test_Error 'EncodeDate';
+
+
+    -- test EncodeTime
+    select hr from PKG_DateUtils.encodeTime(10,1,12)
+    into :rs;
+    if (:rs<>'10:01:12') then
+       exception test_Error 'EncodeTime '||:rs;
+
+
+end^
+
+
+SET TERM ; ^
+
+
+
+/* Existing privileges on this package */
+GRANT EXECUTE ON PACKAGE PKG_DATEUTILS TO WBA;
+GRANT EXECUTE ON PACKAGE PKG_DATEUTILS TO SYSDBA;
