@@ -7,20 +7,108 @@
 
 SET TERM ^ ;
 
-RECREATE PACKAGE PKG_DateUtils
+-- cria um funcao isolada
+/*
+create or alter  function StartOfMonth(PDate date) returns date
+     as
+     begin
+         return PDate - extract(day from PDate)+1;
+     end^
+*/
+
+
+-- cria uma package para isolar os procedimento e funções
+CREATE or ALTER  PACKAGE PKG_DateUtils
 AS
 begin
-     procedure DecodeDate(PDate date)  returns ( y double precision, m double precision, d double precision );
-     procedure DecodeTime (PDate date) returns (h integer, m integer, s integer);
-     procedure EncodeDate (y integer,m integer, d integer) returns ( data date);
-     procedure EncodeTime (h integer,m integer,s integer) returns ( hr char(9));
+     procedure decodeDate(PDate date)  returns ( y double precision, m double precision, d double precision );
+     procedure decodeTime (PDate date) returns (h integer, m integer, s integer);
+     procedure encodeDate (y integer,m integer, d integer) returns ( data date);
+     procedure encodeTime (h integer,m integer,s integer) returns ( hr char(9));
+     function isLeapYear (PDate date) returns boolean;
+     function endOfMonth(PDate date) returns date;
+     function startOfMonth(PDate date) returns date;
+     function dayOfTheWeek(PDate date) returns integer;
+     function dayOfTheMonth ( PDate  date )  returns integer;
+     function dayOfTheYear ( PDate  date ) returns integer;
+     function monthOfTheYear ( PDate date ) returns integer;
+     function addDays( PDay integer, PDate date) returns date;
 
 end^
 
 RECREATE PACKAGE BODY PKG_DateUtils
 AS
 begin
-     procedure DecodeDate(PDate date)  returns  (y double precision, m double precision, d double precision)
+
+     function addDays( PDay integer, PDate date) returns date
+     as
+     begin
+       return dateadd(day, PDay,PDate);
+     end
+
+
+     function monthOfTheYear ( PDate date ) returns integer
+     as
+     begin
+        return extract(month from PDate);
+     end
+
+
+     function dayOfTheYear ( PDate  date ) returns integer
+     as
+     begin
+          return extract(yearday from PDate)+1;
+     end
+
+
+     function dayOfTheMonth ( PDate  date )  returns integer
+     as
+     begin
+        return extract(day from PDate);
+     end
+
+
+     function dayOfTheWeek(PDate Date) returns integer
+     as
+     declare variable rt integer;
+     begin
+        rt = extract(weekday from PDate);
+        if (rt=0) then
+           return 7;    -- pascal style
+        else
+           return rt;
+     end
+
+     function startOfMonth(PDate date) returns date
+     as
+     begin
+         return PDate - extract(day from PDate)+1;
+     end
+
+     function endOfMonth(PDate Date) returns Date
+     as
+     declare variable r date;
+     begin
+         --r = PDate - extract(day from PDate)+32;
+         r = startOfMonth(PDate)+32;
+         return r - extract(day from r);
+     end
+
+     function isLeapYear (PDate DATE) returns boolean
+     AS
+     declare variable y integer;
+     declare variable rt boolean;
+     begin
+       rt = false;
+       y = extract(year from PDate);
+       if ((mod(y,4)=0) and
+          ((mod(y,100)<>0) or
+          (mod(y,400)=0))) then
+          rt = true;
+       return rt;
+     end
+
+     procedure decodeDate(PDate date)  returns  (y double precision, m double precision, d double precision)
      as
      begin
          d = EXTRACT( DAY FROM PDate);
@@ -29,7 +117,7 @@ begin
         suspend;
      end
 
-     procedure DecodeTime (PDate date) returns (h integer, m integer, s integer)
+     procedure decodeTime (PDate date) returns (h integer, m integer, s integer)
      as
      begin
        h = EXTRACT( HOUR FROM PDate);
@@ -39,7 +127,7 @@ begin
      end
 
 
-     procedure EncodeDate (y integer,m integer, d integer) returns ( data date)
+     procedure encodeDate (y integer,m integer, d integer) returns ( data date)
      as
      begin
        data = CAST( CAST(m AS CHAR(2))||'/'||CAST(d AS CHAR(2))||'/'||CAST(y AS CHAR(4)) AS DATE);
@@ -47,7 +135,7 @@ begin
      end
 
 
-     procedure EncodeTime (h integer,m integer,s integer) returns ( hr char(9))
+     procedure encodeTime (h integer,m integer,s integer) returns ( hr char(9))
      as
      declare variable rh varchar(2);
      declare variable rm varchar(2);
@@ -68,8 +156,10 @@ SET TERM ; ^
 
 commit work;
 
+
+
 -----------------------------------------------------------------
--- PKG_DateUtils  Tests
+-- PKG_DateUtils  Unit Tests
 -----------------------------------------------------------------
 create or alter  exception test_Error 'Error: ';
 
@@ -84,7 +174,59 @@ declare variable d double precision ;
 declare variable h integer ;
 declare variable s integer ;
 declare variable rs varchar(50);
+declare variable b boolean;
 begin
+
+    --addDays
+    dt = pkg_dateutils.addDays(10,cast('01/01/2016' as date));
+    if (dt<>cast('01/11/2016' as date)) then
+       exception test_error 'Falhou addDays positivo '||dt;
+    dt = pkg_dateutils.addDays(-10,cast('01/15/2016' as date));
+    if (dt<>cast('01/05/2016' as date)) then
+       exception test_error 'Falhou addDays negativo '||dt;
+
+    --monthOfTheYear
+    h = pkg_dateutils.monthOfTheYear(cast('10/29/2005' as date));
+    if (h<>10) then
+       exception test_error 'Falhou monthOfTheYear '||h;
+
+
+    --dayOfTheYear
+    h = pkg_dateutils.dayOfTheYear(cast('10/29/2005' as date));
+    if (h<>302) then
+       exception test_error 'Falhou dayOfTheYear '||h;
+    h = pkg_dateutils.dayOfTheYear(cast('01/01/2016' as date));
+    if (h<>1) then
+       exception test_error 'Falhou dayOfTheYear '||h;
+
+
+
+    --dayOfTheMonth
+    h = pkg_dateutils.dayOfTheMonth(cast('01/14/2016' as date));
+    if (h<>14) then
+       exception test_error 'Falhou dayOfTheMonth '||h;
+
+
+    -- dayOfTheWeek
+    h = pkg_dateutils.dayOfTheWeek(cast('01/14/2016' as date));
+    if (h<>4) then
+       exception test_error 'Falhou dayOfTheWeek ';
+
+    -- StartOfMonth
+    dt = pkg_dateutils.StartOfMonth( cast('01/13/2016' as date) );
+    if (dt<>cast('01/01/2016' as date)) then
+       exception test_error 'Nao calculou StartOfMonth '||:dt;
+
+    -- EndOfMonth
+    dt = pkg_dateutils.endOfMonth( cast('01/01/2016' as date) );
+    if (dt<>cast('01/31/2016' as date)) then
+       exception test_error 'Nao calculou EndOfMonth '||:dt;
+
+    -- teste isLeapYear
+    select PKG_DateUtils.isLeapYear(cast('01/01/2016' as date)) from rdb$database
+    into :b;
+    if (:b = false) then
+       exception test_error 'Falhou IsLeepYear para 2016';
 
     -- test DecodeDate
     dt = cast('now' as date);
@@ -120,6 +262,12 @@ begin
     into :rs;
     if (:rs<>'10:01:12') then
        exception test_Error 'EncodeTime '||:rs;
+
+
+    select  StartOfMonth(  cast('01/10/2016' as date) ) from RDB$Database
+    into :dt;
+    if (dt<>cast('01/01/2016' as date)) then
+       exception test_error 'Nao calculou function StartOfMonth '||:dt;
 
 
 end^
