@@ -18,7 +18,7 @@ create or alter  function StartOfMonth(PDate date) returns date
 
 
 -- cria uma package para isolar os procedimento e funções
-CREATE or ALTER  PACKAGE PKG_DateUtils
+CREATE or ALTER  PACKAGE pkg_DateUtils
 AS
 begin
      procedure decodeDate(PDate date)  returns ( y double precision, m double precision, d double precision );
@@ -33,12 +33,26 @@ begin
      function dayOfTheYear ( PDate  date ) returns integer;
      function monthOfTheYear ( PDate date ) returns integer;
      function addDays( PDay integer, PDate date) returns date;
+     function addMonths( PMonth integer, PDate date) returns date;
+     function addYears( PYear integer, PDate date) returns date;
 
 end^
 
-RECREATE PACKAGE BODY PKG_DateUtils
+RECREATE PACKAGE BODY pkg_DateUtils
 AS
 begin
+
+     function addYears( PYear integer, PDate date) returns date
+     as
+     begin
+        return dateadd(year,PYear,PDate);
+     end
+
+     function addMonths( PMonth integer, PDate date) returns date
+     as
+     begin
+        return dateadd(month, PMonth,PDate);
+     end
 
      function addDays( PDay integer, PDate date) returns date
      as
@@ -176,6 +190,16 @@ declare variable s integer ;
 declare variable rs varchar(50);
 declare variable b boolean;
 begin
+
+    --addYears
+    dt = pkg_dateutils.addYears(10,cast('01/01/2016' as date));
+    if (dt<>cast('01/01/2026' as date)) then
+       exception test_error 'Falhou addYears positivo '||dt;
+
+    --addMonths
+    dt = pkg_dateutils.addMonths(10,cast('01/01/2016' as date));
+    if (dt<>cast('11/01/2016' as date)) then
+       exception test_error 'Falhou addMonths positivo '||dt;
 
     --addDays
     dt = pkg_dateutils.addDays(10,cast('01/01/2016' as date));
