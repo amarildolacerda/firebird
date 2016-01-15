@@ -35,12 +35,20 @@ begin
      function addDays( PDay integer, PDate date) returns date;
      function addMonths( PMonth integer, PDate date) returns date;
      function addYears( PYear integer, PDate date) returns date;
+     function daysBetween( PD1 date, PD2 date) returns integer;
 
 end^
 
 RECREATE PACKAGE BODY pkg_DateUtils
 AS
 begin
+
+     function daysBetween( PD1 date, PD2 date) returns integer
+     as
+     begin
+        return datediff(day, PD1,PD2);
+     end
+
 
      function addYears( PYear integer, PDate date) returns date
      as
@@ -88,7 +96,7 @@ begin
      begin
         rt = extract(weekday from PDate);
         if (rt=0) then
-           return 7;    -- pascal style
+           return 7;    -- pascal way
         else
            return rt;
      end
@@ -190,6 +198,11 @@ declare variable s integer ;
 declare variable rs varchar(50);
 declare variable b boolean;
 begin
+
+    -- daysBetween
+    h = pkg_dateutils.daysBetween(cast('10/29/2005' as date), cast('11/29/2005' as date));
+    if (h<>31) then
+       exception test_error 'Falhou daysBetween '||h;
 
     --addYears
     dt = pkg_dateutils.addYears(10,cast('01/01/2016' as date));
