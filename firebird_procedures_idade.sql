@@ -69,7 +69,7 @@ begin
   if (l_val>0) then
   begin
      result = result || l_val||'a ';
-     p_data_fim = addyear(:p_data_fim,-:l_val);
+     p_data_ini = addyear(:p_data_ini,:l_val);
   end
 
 
@@ -77,7 +77,7 @@ begin
   if (l_val>0) then
   begin
      result = result || l_val||'s ';
-     p_data_fim = addweek(:p_data_fim,-:l_val);
+     p_data_ini = addweek(:p_data_ini,:l_val);
   end
 
   l_val = datediff(day from :p_data_ini to :p_data_fim);
